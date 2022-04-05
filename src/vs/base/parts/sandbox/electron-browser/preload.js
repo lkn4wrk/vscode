@@ -61,35 +61,35 @@
 	let configuration = undefined;
 
 	/** @type {Promise<ISandboxConfiguration>} */
-	const resolveConfiguration = (async () => {
-		const windowConfigIpcChannel = parseArgv('vscode-window-config');
-		if (!windowConfigIpcChannel) {
-			throw new Error('Preload: did not find expected vscode-window-config in renderer process arguments list.');
-		}
+	// const resolveConfiguration = (async () => {
+	// 	const windowConfigIpcChannel = parseArgv('vscode-window-config');
+	// 	if (!windowConfigIpcChannel) {
+	// 		throw new Error('Preload: did not find expected vscode-window-config in renderer process arguments list.');
+	// 	}
 
-		try {
-			if (validateIPC(windowConfigIpcChannel)) {
+	// 	try {
+	// 		if (validateIPC(windowConfigIpcChannel)) {
 
-				// Resolve configuration from electron-main
-				configuration = await ipcRenderer.invoke(windowConfigIpcChannel);
+	// 			// Resolve configuration from electron-main
+	// 			configuration = await ipcRenderer.invoke(windowConfigIpcChannel);
 
-				// Apply `userEnv` directly
-				Object.assign(process.env, configuration.userEnv);
+	// 			// Apply `userEnv` directly
+	// 			Object.assign(process.env, configuration.userEnv);
 
-				// Apply zoom level early before even building the
-				// window DOM elements to avoid UI flicker. We always
-				// have to set the zoom level from within the window
-				// because Chrome has it's own way of remembering zoom
-				// settings per origin (if vscode-file:// is used) and
-				// we want to ensure that the user configuration wins.
-				webFrame.setZoomLevel(configuration.zoomLevel ?? 0);
+	// 			// Apply zoom level early before even building the
+	// 			// window DOM elements to avoid UI flicker. We always
+	// 			// have to set the zoom level from within the window
+	// 			// because Chrome has it's own way of remembering zoom
+	// 			// settings per origin (if vscode-file:// is used) and
+	// 			// we want to ensure that the user configuration wins.
+	// 			webFrame.setZoomLevel(configuration.zoomLevel ?? 0);
 
-				return configuration;
-			}
-		} catch (error) {
-			throw new Error(`Preload: unable to fetch vscode-window-config: ${error}`);
-		}
-	})();
+	// 			return configuration;
+	// 		}
+	// 	} catch (error) {
+	// 		throw new Error(`Preload: unable to fetch vscode-window-config: ${error}`);
+	// 	}
+	// })();
 
 	//#endregion
 
@@ -105,14 +105,14 @@
 	 */
 	const resolveShellEnv = (async () => {
 
-		// Resolve `userEnv` from configuration and
-		// `shellEnv` from the main side
-		const [userEnv, shellEnv] = await Promise.all([
-			(async () => (await resolveConfiguration).userEnv)(),
-			ipcRenderer.invoke('vscode:fetchShellEnv')
-		]);
+		// // Resolve `userEnv` from configuration and
+		// // `shellEnv` from the main side
+		// const [userEnv, shellEnv] = await Promise.all([
+		// 	(async () => (await resolveConfiguration).userEnv)(),
+		// 	ipcRenderer.invoke('vscode:fetchShellEnv')
+		// ]);
 
-		return { ...process.env, ...shellEnv, ...userEnv };
+		return { ...process.env };
 	})();
 
 	//#endregion
@@ -332,7 +332,33 @@
 			 * @returns {Promise<ISandboxConfiguration>}
 			 */
 			async resolveConfiguration() {
-				return resolveConfiguration;
+				const windowConfigIpcChannel = parseArgv('vscode-window-config');
+				if (!windowConfigIpcChannel) {
+					throw new Error('Preload: did not find expected vscode-window-config in renderer process arguments list.');
+				}
+
+				try {
+					if (validateIPC(windowConfigIpcChannel)) {
+
+						// Resolve configuration from electron-main
+						configuration = await ipcRenderer.invoke(windowConfigIpcChannel);
+
+						// Apply `userEnv` directly
+						Object.assign(process.env, configuration.userEnv);
+
+						// Apply zoom level early before even building the
+						// window DOM elements to avoid UI flicker. We always
+						// have to set the zoom level from within the window
+						// because Chrome has it's own way of remembering zoom
+						// settings per origin (if vscode-file:// is used) and
+						// we want to ensure that the user configuration wins.
+						webFrame.setZoomLevel(configuration.zoomLevel ?? 0);
+
+						return configuration;
+					}
+				} catch (error) {
+					throw new Error(`Preload: unable to fetch vscode-window-config: ${error}`);
+				}
 			}
 		}
 	};
